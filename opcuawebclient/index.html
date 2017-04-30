@@ -3,7 +3,7 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<meta name="viewport" content="width=device-width,height=device-height,maximum-scale=1.0,user-scalable=no">
-	<title>OPCUA-WebClient</title>
+	<title>OPCUA-WebClient __version__</title>
 	<style type="text/css">
 		[v-cloak] { display: none; }
 		html, body{
@@ -259,13 +259,17 @@
 								reject(res);
 							}
 						});
+					}).catch(function(error) {
+						thiz.loadding = false;
+						thiz.error = error.msg || error.message || error || "Network errpr";
 					});
 				},
 				connect: function(){
 					var thiz = this;
 					this.doapi('connect', {serveruri:this.form.serveruri}).then(function(res){
-						if(!thiz.roots || !thiz.roots.length)
+						if(res){// && (!thiz.roots || !thiz.roots.length)){
 							thiz.getnodes(thiz.roots,'');
+						}
 					});
 				},
 				disconnect: function(){
@@ -293,7 +297,9 @@
 				setnode: function(node, prop, value){
 					var thiz = this;
 					this.doapi('set_node', {nodeid:node.NodeId, prop:prop, value:value}).then(function(res){
-						thiz.getnode(node);
+						if(res){
+							thiz.getnode(node);
+						}
 					});
 				},
 			}

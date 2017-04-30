@@ -23,4 +23,5 @@ setup(name='opcua-webclient',
       packages=['opcuawebclient'],
       scripts=['opcuawebclient/opcua-webclient.bat'] if os.name == 'nt' else ['opcuawebclient/opcua-webclient'],
       include_package_data=True,
+      install_requires=['tornado', 'freeopcua'],
       zip_safe=False)

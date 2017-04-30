@@ -1,3 +1,3 @@
-from opcuawebclient import mainserver
+# from opcuawebclient import mainserver
 
-__alll__ = ['mainserver', 'wsgi']
+# __alll__ = ['mainserver', 'wsgi']

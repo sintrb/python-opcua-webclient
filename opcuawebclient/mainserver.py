@@ -17,13 +17,12 @@ import os, json
 import tornado.httpserver
 import tornado.ioloop
 import tornado.web
+from opcua import Client
 
 class IndexHandler(tornado.web.RequestHandler):
     def get(self):
         with open(os.path.join(os.path.dirname(__file__), 'index.html')) as f:
-            self.write(f.read())
-
-from opcua import ua, Client
+            self.write(f.read().replace('__version__', __version__))
 
 def get_node_value(node):
     try:
@@ -47,7 +46,7 @@ class ApiHandler(tornado.web.RequestHandler):
     @classmethod
     def clearOpc(cls):
         try:
-            print 'clear opc client'
+#             print 'clear opc client'
             ApiHandler.client.disconnect()
             ApiHandler.client = None
             ApiHandler.clientdata = {}
@@ -116,6 +115,7 @@ class ApiHandler(tornado.web.RequestHandler):
                 ApiHandler.client = Client(serveruri)
                 ApiHandler.client.connect()
                 ApiHandler.serveruri = serveruri
+                return {'serveruri':serveruri}
             except BaseException, e:
                 ApiHandler.client = None
                 ApiHandler.serveruri = None
@@ -193,10 +193,33 @@ class ApiHandler(tornado.web.RequestHandler):
                 subscription.unsubscribe(subid)
                 ApiHandler.clientdata[nodeid][prop] = None
 
-def main():
-    from tornado.options import options, define
+options = {
+    'bind':'0.0.0.0',
+    'port':8000,
+    'webbrowser':False
+    }
+def config(argv):
+    import getopt
+    opts, args = getopt.getopt(argv, "bh")
+    for opt, arg in opts:
+        if opt == '-h':
+            print 'Usage: python -m opcuawebclient [bindaddress:port | port]'
+            print 'Report bugs to <sintrb@gmail.com>'
+            exit()
+        if opt == '-b':
+            options['webbrowser'] = True
+    if len(args) > 0:
+        bp = args[0]
+        if ':' in bp:
+            options['bind'] = bp[0:bp.index(':')]
+            options['port'] = int(bp[bp.index(':') + 1:])
+        else:
+            options['bind'] = '0.0.0.0'
+            options['port'] = int(bp)
+
+def runserver():
     from wsserver import ChannelSocketHandler
-    define('port', type=int, default=8000)
+    ApiHandler.clearOpc()
     tornado_app = tornado.web.Application([
                (r"/ws/(?P<channel>\S+)", ChannelSocketHandler),
                (r"/api/(?P<apiname>\S+)", ApiHandler),
@@ -206,18 +229,17 @@ def main():
             debug=True
     )
     server = tornado.httpserver.HTTPServer(tornado_app)
-    server.listen(options.port, address='0.0.0.0')
-    tornado.ioloop.IOLoop.instance().start()
+    server.listen(options['port'], address=options['bind'])
+    tornado.ioloop.IOLoop.instance().start()  
 
-if __name__ == '__main__':
-    # listen Ctrl+C begin
-    import signal
+def main():
     import sys
-    ApiHandler.clearOpc()
-    def handler(signal_num, frame):
-        print 'Exit!'
-        sys.exit(signal_num)
-    signal.signal(signal.SIGINT, handler)
-    print 'Ctrl+C to exit...'
-    # End
+    config(sys.argv[1:])
+    print 'Listent at %s:%s' % (options['bind'], options['port'])
+    if options['webbrowser']:
+        import webbrowser
+        webbrowser.open_new('http://127.0.0.1:%s/' % options['port'])
+    runserver()
+    
+if __name__ == '__main__':
     main()

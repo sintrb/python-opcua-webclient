@@ -1,2 +1,2 @@
 include *.rst
-recursive-include HtmlDiagnose *.*
+recursive-include opcuawebclient *.*
