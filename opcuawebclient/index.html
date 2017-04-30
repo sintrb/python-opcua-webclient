@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="width=device-width,height=device-height,maximum-scale=1.0,user-scalable=no">
+	<title>OPCUA-WebClient</title>
+	<style type="text/css">
+		[v-cloak] { display: none; }
+		html, body{
+			padding: 0;
+			margin: 0;
+			height: 100%;
+			font-family: Consolas, Monaco, monospace;
+		}
+		#app{
+			display: flex;
+			flex-direction: column;
+			height: 100%;
+		}
+		#app .toolbar{
+			flex-grow: 0;
+		}
+		#app .mainpanel{
+			flex-grow: 1;
+			display: flex;
+			flex-direction: column;
+			/*overflow: hidden;*/
+		}
+		#app .mainpanel .nodepanel{
+			flex-grow: 1;
+			/*background: blue;*/
+			overflow: scroll;
+			margin: 1px;
+			border: 1px solid #ddd;
+		}
+		#app .mainpanel .tabspanel{
+			height: 240px;
+			margin: 1px;
+			border: 1px solid #ddd;
+			/*border-top: none;*/
+			overflow: scroll;
+			display: flex;
+			flex-direction: column;
+		}
+		.tabspanel .tabbar{
+			/*background: #F00;*/
+			border-bottom: 1px solid black;
+		}
+		.tabspanel .tabbar .tabitem{
+			padding: 0 5px;
+		}
+		.tabspanel .tabbar .tabitem.checked{
+			background: red;
+			border-top: 1px solid black;
+			/*margin-bottom: -1px;*/
+		}
+		.tabspanel .tabbody{
+			flex-grow: 1;
+			/*background: #664;*/
+			/*border: 1px solid gray;*/
+			overflow: scroll;
+		}
+		.toolbar{
+			/*border-bottom: 1px solid #ddd;*/
+		}
+		.nodeitem{
+			display: block;
+			border-bottom: 1px solid #dcdcdc;
+		}
+		.nodeitem.title{
+			font-weight: bold;
+			border-bottom: 1px solid gray;
+		}
+		.nodeitem span{
+			display: inline-block;
+			width: 32%;
+			cursor: pointer;
+			word-break:break-all;
+		}
+		.nodeitem span.displayname{
+			width: 35%;
+		}
+		.nodeitem span.browsename{
+			width: 25%;
+		}
+		.nodeitem span.value{
+			width: 20%;
+			text-align: left;
+		}
+		.nodeitem span.nodeid{
+			width: 10%;
+			text-align: center;
+		}
+		.error{
+			color: red;
+		}
+		.checkbox{
+
+		}
+		.checkbox.checked{
+			color: red;
+		}
+		.highlight{
+			color: red;
+		}
+	</style>
+</head>
+<body>
+	<div id="app" v-cloak>
+		<div class="toolbar" style="margin-bottom: 5px;">
+			Server URL: <input v-model="form.serveruri" style="width:350px;"><button @click="connect();">Connect</button><button @click="disconnect();">Disconnect</button><button @click="getnodes(roots,'');">Refresh</button><span v-if="loadding">doing...</span><span class="error" v-if="error">{{error}}</span>
+		</div>
+		<div class="mainpanel">
+			<div class="nodepanel">
+				<div class="nodeitem title">
+					<span class="displayname">DisplayName</span><span class="browsename">BrowseName</span><span class="value">Value</span><span class="nodeid">NodeId</span>
+				</div>
+				<template v-for="n in roots">
+					<node :node="n" :level="0"/>
+				</template >
+			</div>
+			<div class="tabspanel">
+				<div class="tabbar">
+					<span class="tabitem checked">Event</span>
+					<!-- <span class="tabitem">Event</span> -->
+				</div>
+				<div class="tabbody">
+					<div v-for="e in events">{{e.value}}</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script type="text/javascript" src="/static/vue.min.js"></script>
+	<script type="text/javascript" src="/static/fetch.js"></script>
+	<script type="text/javascript" src="/static/irws.js"></script>
+	<script type="text/javascript">
+		Vue.component('value', {
+			props: ['value'],
+			data: function() {
+				return {
+					showvalue:this.value,
+					highlight:false,
+					timeid:0
+				}
+			},
+			template: '<em class="value" v-bind:class="{highlight:highlight}">{{showvalue}}</em>',
+			watch:{
+				value:{
+					handler:function(cur, old){
+						if(cur != old){
+							var thiz = this;
+							thiz.highlight = true;
+							if(thiz.timeid){
+								clearTimeout(thiz.timeid);
+								thiz.timeid = 0;
+							}
+							thiz.timeid = setTimeout(function(){
+								thiz.highlight = false;
+							}, 1000);
+						}
+						this.showvalue = cur;
+					}
+				}
+			}
+		});
+		Vue.component('node', {
+			name: 'node',
+			template: `<div><div class="nodeitem"><span class="displayname"><em class="toggle" @click="$event.cancelBubble = true; node.nodes=[];getnodes(node.nodes, node.NodeId);">R</em> <em @click="node.expanded = !node.expanded;if(node.nodes==null){node.nodes=[];getnodes(node.nodes, node.NodeId);}" style="border: 1px solid #808080;padding: 0;">{{(node.expanded?"-":"+")}}</em>{{"-".repeat(level)}}{{node.DisplayName}}</span><span class="browsename">{{node.BrowseName}}</span><span class="value" @click="getnode(node);">[<em class="checkbox" :class="{checked:node.config.data}" @click="$event.cancelBubble = true; setnode(node,'data', !node.config.data);">D</em> <em class="checkbox" :class="{checked:node.config.event}" @click="$event.cancelBubble = true; setnode(node,'event', !node.config.event);">E</em>]<value :value="node.value"></value></span><span class="nodeid">{{node.NodeId}}</span></div> <node v-if="node.expanded" v-for="n in node.nodes" :node="n" :level="level+1"></node></div>`,
+			props: ['node', 'level'],
+			methods:{
+				getnodes: function(nodes, parentId){
+					return app.getnodes(nodes, parentId);
+				},
+				getnode: function(node){
+					return app.getnode(node);
+				},
+				setnode: function(node, prop, value){
+					return app.setnode(node, prop, value);
+				}
+			}
+		});
+
+		var app = new Vue({
+			el: '#app',
+			data: {
+				cleints:[],
+				form:{
+					serveruri:'opc.tcp://127.0.0.1:4840/freeopcua/server/',
+				},
+				roots:[],
+				events:[],
+				loadding:false,
+				nodemap:{},
+				error:null,
+			},
+			watch: {
+
+			},
+			methods: {
+				init: function(res) {
+					this.initws();
+				},
+				initws:function(){
+					console.log('initws');
+					var thiz = this;
+					try{
+						this.ws = new IRWS({
+							channel:'opc',
+							onclose:function(){
+								setTimeout(thiz.initws, 1000);
+							},
+							onopen:function(){
+								console.log('open');
+							},
+							onerror:function(){
+								setTimeout(thiz.initws, 1000);
+							}
+						});
+						this.ws.subscribe('datachange', function(data){
+							if(data && data.nodeid in thiz.nodemap){
+								thiz.nodemap[data.nodeid].value = data.value;
+							}
+						});
+						this.ws.subscribe('event', function(data){
+							if(data && data.nodeid){
+								// console.log(data.nodeid, data.value);
+								thiz.events.splice(0, 0, data);
+								thiz.events = thiz.events.slice(0,100);
+							}
+						});
+					}
+					catch(e){
+						setTimeout(thiz.initws, 1000);
+					}
+				},
+				repeat:function(s, count, seg) {
+					var a = [];
+					while(count>0){
+						a.push(s);
+					}
+					return a.join(seg || '');
+				},
+				doapi: function(name, params, cbk){
+					var thiz = this;
+					var paramspairs = params?Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join("&"):"";
+					thiz.loadding = true;
+					thiz.error = null;
+					return fetch('/api/'+name+"?"+paramspairs, {method:'GET'}).then(function(response){
+						thiz.loadding = false;
+						return response.json();
+					}).then(function(res) {
+						return new Promise(function(resolve, reject) {
+							if(res.code == 0){
+								resolve(res);
+							} else {
+								if(res && res.msg)
+									thiz.error = res.msg;
+								reject(res);
+							}
+						});
+					});
+				},
+				connect: function(){
+					var thiz = this;
+					this.doapi('connect', {serveruri:this.form.serveruri}).then(function(res){
+						if(!thiz.roots || !thiz.roots.length)
+							thiz.getnodes(thiz.roots,'');
+					});
+				},
+				disconnect: function(){
+					this.doapi('disconnect');
+				},
+				getnode: function(node){
+					this.doapi('get_node', {nodeid:node.NodeId}).then(function(res){
+						node.value = res.data.value;
+						node.config = res.data.config;
+					});
+				},
+				getnodes: function(nodes, parentId){
+					var thiz = this;
+					this.doapi('get_nodes', {parentId:parentId}).then(function(res){
+						console.log(res);
+						nodes.splice(0, nodes.length);
+						res.data.map(function(v){
+							v.nodes = null;
+							v.expanded = false;
+							nodes.push(v);
+							thiz.nodemap[v.NodeId] = v;
+						})
+					});
+				},
+				setnode: function(node, prop, value){
+					var thiz = this;
+					this.doapi('set_node', {nodeid:node.NodeId, prop:prop, value:value}).then(function(res){
+						thiz.getnode(node);
+					});
+				},
+			}
+		});
+		app.init();
+	</script>
+</body>
+</html>
