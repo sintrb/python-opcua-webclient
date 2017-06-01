@@ -67,6 +67,9 @@
 			display: block;
 			border-bottom: 1px solid #dcdcdc;
 		}
+		.nodeitem:hover{
+			background: #e0e0e0;
+		}
 		.nodeitem.title{
 			font-weight: bold;
 			border-bottom: 1px solid gray;
@@ -273,7 +276,10 @@
 					});
 				},
 				disconnect: function(){
-					this.doapi('disconnect');
+					var thiz = this;
+					this.doapi('disconnect').then(function(res){
+						thiz.roots = [];
+					})
 				},
 				getnode: function(node){
 					this.doapi('get_node', {nodeid:node.NodeId}).then(function(res){

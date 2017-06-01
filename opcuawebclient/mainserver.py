@@ -48,10 +48,10 @@ class ApiHandler(tornado.web.RequestHandler):
         try:
 #             print 'clear opc client'
             ApiHandler.client.disconnect()
-            ApiHandler.client = None
-            ApiHandler.clientdata = {}
         except:
             pass
+        ApiHandler.client = None
+        ApiHandler.clientdata = {}
         
     def ret(self, data=None, code=0, message=None):
         self.set_header('Content-Type', 'application/json; charset=UTF-8')
@@ -116,7 +116,7 @@ class ApiHandler(tornado.web.RequestHandler):
                 ApiHandler.client.connect()
                 ApiHandler.serveruri = serveruri
                 return {'serveruri':serveruri}
-            except BaseException, e:
+            except BaseException as e:
                 ApiHandler.client = None
                 ApiHandler.serveruri = None
                 raise e
