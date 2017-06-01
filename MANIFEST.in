@@ -1,2 +1,2 @@
 include *.rst
-recursive-include opcuawebclient *.*
+recursive-include opcuawebclient *

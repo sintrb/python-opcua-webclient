@@ -21,7 +21,7 @@ setup(name='opcua-webclient',
       author_email='sintrb@gmail.com',
       license='Apache',
       packages=['opcuawebclient'],
-      scripts=['opcuawebclient/opcua-webclient.bat'] if os.name == 'nt' else ['opcuawebclient/opcua-webclient'],
+      scripts=['opcuawebclient/opcua-webclient.bat', 'opcuawebclient/opcua-webclient'],
       include_package_data=True,
       install_requires=['tornado', 'freeopcua'],
       zip_safe=False)

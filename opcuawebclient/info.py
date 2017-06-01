@@ -4,4 +4,4 @@ Created on 2017年4月30日
 
 @author: Robin
 '''
-__version__ = "0.0.3"
+__version__ = "0.0.5"
