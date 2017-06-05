@@ -13,6 +13,7 @@ import tornado.websocket
 import threading
 import json
 logger = logging.getLogger('tornado.ws')
+logger.setLevel(logging.ERROR)
 class ChannelSocketHandler(tornado.websocket.WebSocketHandler):
     channelmap = {
                   }
@@ -132,7 +133,7 @@ class ChannelSocketHandler(tornado.websocket.WebSocketHandler):
             # 订阅
             tag = data.get('tag')
             cid = str(id(ChannelSocketHandler.add_subscribe(self, tag)))
-            return ChannelSocketHandler.send_message_to_con(self, {
+            ChannelSocketHandler.send_message_to_con(self, {
                                                       'type':'subscribe',
                                                       'data':{
                                                               'cid':cid

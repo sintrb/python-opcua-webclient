@@ -11,3 +11,7 @@ CHANGES
 0.0.3
 
 - fix disconnect bug
+
+0.0.6
+
+- fix websocket bug
