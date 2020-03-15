@@ -190,7 +190,7 @@
 			data: {
 				cleints:[],
 				form:{
-					serveruri:'opc.tcp://127.0.0.1:4840/freeopcua/server/',
+					serveruri:window.localStorage && window.localStorage.serveruri || 'opc.tcp://127.0.0.1:4840/freeopcua/server/',
 				},
 				roots:[],
 				events:[],
@@ -273,6 +273,7 @@
 					this.doapi('connect', {serveruri:this.form.serveruri}).then(function(res){
 						if(res){// && (!thiz.roots || !thiz.roots.length)){
 							thiz.getnodes(thiz.roots,'');
+							window.localStorage.serveruri = thiz.form.serveruri;
 						}
 					});
 				},

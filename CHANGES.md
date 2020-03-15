@@ -15,3 +15,7 @@ CHANGES
 0.0.6
 
 - fix websocket bug
+
+1.0.0
+
+- support Python3

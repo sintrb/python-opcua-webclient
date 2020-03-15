@@ -5,19 +5,14 @@ Created on 2017年4月21日
 @author: RobinTang
 '''
 
-# -*- coding: UTF-8 -*
-'''
-Created on 2017年4月1日
-
-@author: RobinTang
-'''
-from info import __version__
+from __future__ import print_function
 import os, json
 
 import tornado.httpserver
 import tornado.ioloop
 import tornado.web
 from opcua import Client
+from .info import __version__
 
 class IndexHandler(tornado.web.RequestHandler):
     def get(self):
@@ -52,7 +47,7 @@ class ApiHandler(tornado.web.RequestHandler):
             pass
         ApiHandler.client = None
         ApiHandler.clientdata = {}
-        
+
     def ret(self, data=None, code=0, message=None):
         self.set_header('Content-Type', 'application/json; charset=UTF-8')
         if message and code == 0:
@@ -86,7 +81,7 @@ class ApiHandler(tornado.web.RequestHandler):
                    'name':k
                    }
             if i >= argslen:
-                arg['default'] = defaults[i - argslen] 
+                arg['default'] = defaults[i - argslen]
             arginfos.append(arg)
 
         missargs = []
@@ -102,12 +97,11 @@ class ApiHandler(tornado.web.RequestHandler):
         try:
             res = func(**kvargs)
             self.ret(data=res)
-        except:
-            import traceback, sys
+        except Exception as e:
+            import traceback
             traceback.print_exc()
-            es = sys.exc_info()
-            self.ret(message=es[1].message or str(es[1]) or str(es[0]))
-    
+            self.ret(message=str(e))
+
     def api_connect(self, serveruri):
         if not ApiHandler.client or ApiHandler.client == Client or ApiHandler.serveruri != serveruri:
             self.api_disconnect()
@@ -119,11 +113,11 @@ class ApiHandler(tornado.web.RequestHandler):
             except BaseException as e:
                 ApiHandler.client = None
                 ApiHandler.serveruri = None
-                raise e
+                raise
 
     def api_disconnect(self):
         ApiHandler.clearOpc()
-    
+
     def api_get_nodes(self, parentId):
         node = self.opc_get_node(parentId)
         if parentId:
@@ -150,23 +144,23 @@ class ApiHandler(tornado.web.RequestHandler):
                  'value':get_node_value(node),
                  'config':wrapdata(ApiHandler.clientdata.get(nodeid,))
         }
-    
+
     class NodeHandler(object):
         def __init__(self, nodeid):
             self.nodeid = nodeid
         def event_notification(self, event):
-            from wsserver import ChannelSocketHandler
+            from .wsserver import ChannelSocketHandler
             ChannelSocketHandler.send_data('opc', {
                 'nodeid': event.SourceNode.to_string(),
                 'value':str(event)
                 }, 'event')
         def datachange_notification(self, node, val, data):
-            from wsserver import ChannelSocketHandler
+            from .wsserver import ChannelSocketHandler
             ChannelSocketHandler.send_data('opc', {
                 'nodeid': node.nodeid.to_string(),
                 'value':str(val)
                 }, 'datachange')
-        
+
     def api_set_node(self, nodeid, prop, value):
         if str(value).upper() == 'FALSE':
             value = False
@@ -203,8 +197,8 @@ def config(argv):
     opts, args = getopt.getopt(argv, "bh")
     for opt, arg in opts:
         if opt == '-h':
-            print 'Usage: python -m opcuawebclient [bindaddress:port | port]'
-            print 'Report bugs to <sintrb@gmail.com>'
+            print('Usage: python -m opcuawebclient [bindaddress:port | port]')
+            print('Report bugs to <sintrb@gmail.com>')
             exit()
         if opt == '-b':
             options['webbrowser'] = True
@@ -218,7 +212,7 @@ def config(argv):
             options['port'] = int(bp)
 
 def runserver():
-    from wsserver import ChannelSocketHandler
+    from .wsserver import ChannelSocketHandler
     ApiHandler.clearOpc()
     tornado_app = tornado.web.Application([
                (r"/ws/(?P<channel>\S+)", ChannelSocketHandler),
@@ -230,16 +224,16 @@ def runserver():
     )
     server = tornado.httpserver.HTTPServer(tornado_app)
     server.listen(options['port'], address=options['bind'])
-    tornado.ioloop.IOLoop.instance().start()  
+    tornado.ioloop.IOLoop.instance().start()
 
 def main():
     import sys
     config(sys.argv[1:])
-    print 'Listent at %s:%s' % (options['bind'], options['port'])
+    print('Listent at %s:%s' % (options['bind'], options['port']))
     if options['webbrowser']:
         import webbrowser
         webbrowser.open_new('http://127.0.0.1:%s/' % options['port'])
     runserver()
-    
+
 if __name__ == '__main__':
     main()

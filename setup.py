@@ -3,18 +3,19 @@ import os, io
 from setuptools import setup
 
 from opcuawebclient.info import __version__
+
 here = os.path.abspath(os.path.dirname(__file__))
-README = io.open(os.path.join(here, 'README.rst'), encoding='UTF-8').read()
-CHANGES = io.open(os.path.join(here, 'CHANGES.rst'), encoding='UTF-8').read()
+README = io.open(os.path.join(here, 'README.md'), encoding='UTF-8').read()
+CHANGES = io.open(os.path.join(here, 'CHANGES.md'), encoding='UTF-8').read()
 setup(name='opcua-webclient',
       version=__version__,
       description='A OPCUA web client, implemented by Python.',
       long_description=README + '\n\n\n' + CHANGES,
+      long_description_content_type="text/markdown",
       url='https://github.com/sintrb/python-opcua-webclient',
       classifiers=[
           'Intended Audience :: Developers',
           'Operating System :: OS Independent',
-          'Programming Language :: Python :: 2.7',
       ],
       keywords='OPC OPCUA WEB CLIENT',
       author='sintrb',
